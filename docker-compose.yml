@@ -1,0 +1,147 @@
+version: '3.6'
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    depends_on:
+      - php72-fpm
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      mynetwork:
+          ipv4_address: 172.20.0.2
+    volumes:
+      - ./wwwroot/:/wwwroot/
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+
+  php72-fpm:
+    image: php-fpm:v1.0
+    container_name: php72-fpm
+    restart: always
+    depends_on:
+      - redis
+      - mysqld
+      - rabbitmq
+    ports:
+      - 9000:9000
+      - 8010:8010
+      - 8088:8088
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.3
+    volumes:
+      - ./wwwroot/:/wwwroot/
+
+  redis:
+    image: redis:5.0
+    container_name: redis
+    environment:
+      - TIMEZONE=Asia/Shanghai
+    restart: always
+    ports:
+      - 6379:6379
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.5
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf
+      - ./logs/redis/:/data
+
+  mysqld:
+    image: mysql:5.6
+    container_name: mysql5.6
+    environment:
+      - TIMEZONE=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=secret
+      - MYSQL_USER=demo
+      - MYSQL_PASS=secret
+      - MYSQL_DATABASE=demo
+    restart: always
+    ports:
+      - 3306:3306
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.6
+    volumes:
+      - ./mysql/etc/:/etc/mysql/
+      - ./mysql/lib/:/var/lib/
+      - ./mysql/data/:/usr/data/
+      - ./mysql/mysql-files:/var/lib/mysql-files
+
+  rabbitmq:
+    image:  rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      - TIMEZONE=Asia/Shanghai
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_VHOST=/
+      - RABBITMQ_ERLANG_COOKIE=test
+
+    restart: always
+    ports:
+      - 15672:15672
+      - 5672:5672
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.7
+    volumes:
+      - ${DATA_PATH_HOST}/rabbitmq:/var/lib/rabbitmq/mnesia
+      
+  golang:
+    image: golang:1.14
+    tty: true
+    container_name: golang
+    restart: always
+    volumes:
+      - ./wwwroot/:/wwwroot/
+    ports:
+      - 8300:8300
+      - 8400:8400
+      - 8500:8500
+      - 8080:8080
+      - 8081:8081
+      - 8085:8085
+      - 8082:8082
+      - 8022:8022
+      - 8091:8091
+      - 8090:8090
+      - 9088:9088
+      - 8379:8379
+      - 16686:16686
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.8
+
+  node:
+    image: node
+    tty: true
+    container_name: node
+    restart: always
+    ports:
+      - 8087:8087
+      - 8023:8023
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.9
+    volumes:
+      - ./wwwroot/:/wwwroot/
+#  consul:
+#    image: consul
+#    container_name: consul
+#    restart: always
+#    ports:
+#      - 8500:8500
+#    networks:
+#      mynetwork:
+#        ipv4_address: 172.20.1.1
+
+networks:
+  mynetwork:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+        
