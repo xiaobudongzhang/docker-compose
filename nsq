@@ -1,0 +1,65 @@
+# Use root/example as user/password credentials
+version: '3.1'
+
+services:
+
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    ports:
+      - "3306:3306"
+    volumes:
+      - D:\work\mysqldata:/var/lib/mysql
+      - D:\work\mysqltmp:/var/tmp
+    networks:
+      mynetwork:
+        ipv4_address:  172.20.0.7
+  nsqlookupd:
+    image: nsqio/nsq
+    command: /nsqlookupd
+    ports:
+      - "4260:4160"
+      - "4261:4161"
+    networks:
+      mynetwork:
+        ipv4_address:  172.20.0.8
+  nsqlookupd2:
+    image: nsqio/nsq
+    command: /nsqlookupd
+    ports:
+      - "4360:4160"
+      - "4361:4161"
+    networks:
+      mynetwork:
+        ipv4_address:  172.20.0.12
+  nsqd:
+    image: nsqio/nsq
+    command: /nsqd --lookupd-tcp-address=nsqlookupd:4160  -broadcast-address=172.20.0.9
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4150:4150"
+      - "4151:4151"
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.9
+
+  nsqadmin:
+    image: nsqio/nsq
+    command: /nsqadmin --lookupd-http-address=nsqlookupd:4161 --lookupd-http-address=nsqlookupd2:4161
+    depends_on:
+      - nsqlookupd  
+    ports:
+      - "4171:4171"
+    networks:
+      mynetwork:
+        ipv4_address: 172.20.0.11
+networks:
+  mynetwork:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
